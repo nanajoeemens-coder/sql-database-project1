@@ -1,0 +1,135 @@
+-- ==========================================================
+-- Part 1: Data Definition Language (DDL)
+-- ==========================================================
+
+-- 1. Database Creation
+CREATE DATABASE IF NOT EXISTS `Pine Valley Furniture`;
+USE `Pine Valley Furniture`;
+
+-- 2. Create Tables (Parent Tables First)
+CREATE TABLE Customer_T (
+    CustomerID INT PRIMARY KEY,
+    CustomerName VARCHAR(100) NOT NULL,
+    CustomerAddress VARCHAR(150),
+    CustomerCity VARCHAR(50),
+    CustomerState VARCHAR(50),
+    CustomerPostalCode VARCHAR(20)
+);
+
+CREATE TABLE Product_T (
+    ProductID INT PRIMARY KEY,
+    ProductDescription VARCHAR(100),
+    ProductFinish VARCHAR(50),
+    ProductStandardPrice DECIMAL(10,2),
+    CONSTRAINT chk_ProductFinish CHECK (ProductFinish IN ('Natural Ash', 'Red Oak', 'Cherry', 'Walnut'))
+);
+
+-- Child Tables (Referencing Parent Tables)
+CREATE TABLE Order_T (
+    OrderID INT PRIMARY KEY,
+    OrderDate DATE,
+    CustomerID INT,
+    FOREIGN KEY (CustomerID) REFERENCES Customer_T(CustomerID) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+CREATE TABLE OrderLine_T (
+    OrderID INT,
+    ProductID INT,
+    OrderedQuantity INT,
+    PRIMARY KEY (OrderID, ProductID),
+    FOREIGN KEY (OrderID) REFERENCES Order_T(OrderID) ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (ProductID) REFERENCES Product_T(ProductID) ON DELETE RESTRICT ON UPDATE CASCADE
+);
+
+-- 3. Schema Modification
+ALTER TABLE Customer_T ADD CustomerEmail VARCHAR(50) UNIQUE;
+
+-- 4. Create Index for performance
+CREATE INDEX idx_product_price ON Product_T(ProductStandardPrice);
+
+
+-- ==========================================================
+-- Part 2: Data Manipulation Language (DML)
+-- ==========================================================
+
+-- 1. Insertion
+INSERT INTO Customer_T (CustomerID, CustomerName, CustomerCity, CustomerState) VALUES 
+(1100, ' Emmanuel',   'Accra',      'Greater Accra'),
+(1101, 'Joseph',      'Enchi',     'W/N'),
+(1102, 'Theophilus', 'Koforidua',  'Eastern'),
+(1103, 'George',     'Accra',      'Greater Accra'),
+(1104, ' kofi',     'Tema',     'Greater Accra');
+
+INSERT INTO Product_T (ProductID, ProductDescription, ProductFinish, ProductStandardPrice) VALUES 
+(1, 'Office Chair',        'Natural Ash', 150.00),
+(2, 'Study Desk',          'Red Oak',     300.00),
+(3, 'Bookshelf',           'Walnut',      450.00),
+(4, 'Side Table',          'Natural Ash', 100.00),
+(5, 'Modern Workstation',  'Red Oak',     1200.00),
+(6, 'Cherry Dining Table', 'Cherry',      800.00);
+
+INSERT INTO Order_T (OrderID, OrderDate, CustomerID) VALUES 
+(101, '2026-05-01', 1100),
+(102, '2026-05-02', 1101),
+(103, '2026-05-03', 1102),
+(104, '2026-05-04', 1103),
+(105, '2026-05-05', 1104);
+
+INSERT INTO OrderLine_T (OrderID, ProductID, OrderedQuantity) VALUES 
+(101, 1, 12),
+(102, 2,  5),
+(103, 3, 15),
+(104, 4,  2),
+(105, 6,  1);
+
+-- 2. Selection Queries
+
+-- (a) Filtering & Sorting — FIXED: filter by city values, not state names
+SELECT CustomerName, CustomerCity, CustomerState FROM Customer_T 
+WHERE CustomerCity IN ('Accra', 'Kumasi') ORDER BY CustomerName ASC;
+
+-- (b) Aggregate Functions
+SELECT MAX(ProductStandardPrice) AS Max_Price,
+       MIN(ProductStandardPrice) AS Min_Price,
+       AVG(ProductStandardPrice) AS Avg_Price
+FROM Product_T;
+
+-- (c) Inner Join
+SELECT Order_T.OrderID, Customer_T.CustomerName FROM Order_T 
+INNER JOIN Customer_T ON Order_T.CustomerID = Customer_T.CustomerID;
+
+-- (d) Group By & Having
+SELECT ProductID, SUM(OrderedQuantity) AS Total_Quantity FROM OrderLine_T 
+GROUP BY ProductID HAVING SUM(OrderedQuantity) > 10;
+
+-- 3. Update
+UPDATE Customer_T SET CustomerCity = 'Koforidua' WHERE CustomerID = 1100;
+
+-- 4. Delete
+DELETE FROM Order_T WHERE OrderDate < '2023-01-01';
+
+
+-- ==========================================================
+-- Part 3: Data Control Language (DCL)
+-- ==========================================================
+
+CREATE USER IF NOT EXISTS 'sales_clerk'@'localhost' IDENTIFIED BY 'password123';
+GRANT DELETE ON `Pine Valley Furniture`.Product_T TO 'sales_clerk'@'localhost';
+
+-- 1. Granting Permissions
+GRANT SELECT, INSERT ON `Pine Valley Furniture`.Order_T TO 'sales_clerk'@'localhost';
+
+-- 2. Revoking Permissions
+REVOKE DELETE ON `Pine Valley Furniture`.Product_T FROM 'sales_clerk'@'localhost';
+
+FLUSH PRIVILEGES;
+
+
+
+
+
+
+
+
+
+
